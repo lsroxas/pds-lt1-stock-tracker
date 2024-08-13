@@ -1,1 +1,1 @@
-# stock-tracker-pds2025
+# LT1 Final Project for PDS - Stock Tracker App
