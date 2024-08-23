@@ -68,7 +68,6 @@ class PotfolioSummary(Static):
 
 
 class StockTrackerApp(App):
-
     CSS_PATH = "style.tcss"
     OWNER = "LT1"
 
