@@ -6,10 +6,10 @@ from textual.widgets import Header, Footer, Button, Static, DataTable, Label
 from datetime import time, datetime
 
 ROWS = [
-        ("Symbol", "Market Price", "Avg Price", "Total Shares", "Market Value", "Gain/Loss", "%Chg"),
-        ("AAPL", 83.41, 82.10, 1000, 10000, -55.75, -5.5),
-        ("TSLA", 83.41, 82.10, 1000, 10000, -55.75, -5.5),
-        ("AMZN", 83.41, 82.10, 1000, 10000, -55.75, -5.5)
+        ("Symbol", "Market Price", "Avg Price", "Total Shares", "% of Portfolio", "Market Value", "Gain/Loss", "%Chg"),
+        ("AAPL", 83.41, 82.10, 1000, 0.75, 10000, -55.75, -5.5),
+        ("TSLA", 83.41, 82.10, 1000, 0.10, 10000, -55.75, -5.5),
+        ("AMZN", 83.41, 82.10, 1000, 0.15, 10000, -55.75, -5.5)
     ]
 
 class LastUpdateInfo(Static):
@@ -63,11 +63,14 @@ class PotfolioSummary(Static):
     
     def compose(self):
         # yield Markdown(self.PORTFOLIO_VALUE_MESSAGE + "\\n" + self.PORTFOLIO_DAY_CHANGE_MESSAGE + "\n" + self.PORTFOLIO_GAINLOSS_MESSAGE, classes="Summary")
-        yield Label(self.PORTFOLIO_VALUE_MESSAGE, classes="Summary")
+        yield Label(self.PORTFOLIO_VALUE_MESSAGE, classes="summary")
+
+
 
 class StockTrackerApp(App):
 
     CSS_PATH = "style.tcss"
+    OWNER = "LT1"
 
     BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit_application", "Quit")]
     
@@ -80,7 +83,7 @@ class StockTrackerApp(App):
     
     def compose(self) -> ComposeResult:
         """Widgets for the app"""
-        yield Header("Stock Portfolio Tracker")
+        yield Header()
         yield Footer()
         yield PortfolioTable()
         yield PotfolioSummary()
@@ -95,6 +98,10 @@ class StockTrackerApp(App):
     def action_quit_application(self) -> None: 
         """Quit application"""
         self.exit()
+
+    def on_mount(self):
+        self.title = "Stock Tracker"
+        self.sub_title = f"{self.OWNER}'s Portfolio"
 
 if __name__ == "__main__":
     app = StockTrackerApp()
