@@ -73,13 +73,6 @@ class StockTrackerApp(App):
 
     BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit_application", "Quit")]
     
-    # ROWS = [
-    #     ("Symbol", "Market Price", "Avg Price", "Total Shares", "Market Value", "Gain/Loss", "%Chg"),
-    #     ("AAPL", 83.41, 82.10, 1000, 10000, -55.75, -5.5),
-    #     ("TSLA", 83.41, 82.10, 1000, 10000, -55.75, -5.5),
-    #     ("AMZN", 83.41, 82.10, 1000, 10000, -55.75, -5.5)
-    # ]
-    
     def compose(self) -> ComposeResult:
         """Widgets for the app"""
         yield Header()
