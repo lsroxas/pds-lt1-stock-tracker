@@ -2,7 +2,8 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
 from textual.containers import Horizontal, VerticalScroll, ScrollableContainer
-from textual.widgets import Header, Footer, Button, Static, DataTable
+from textual.widgets import Header, Footer, Button, Static, DataTable, Label
+from datetime import time, datetime
 
 ROWS = [
         ("Symbol", "Market Price", "Avg Price", "Total Shares", "Market Value", "Gain/Loss", "%Chg"),
@@ -13,22 +14,59 @@ ROWS = [
 
 class LastUpdateInfo(Static):
     """Shows last update time of stock information"""
-    def compose(self):
-        ...
-
-class StockWatch(Static):
-    """Buttons for Stock Watchlist"""
-    def compose(self):
-        yield Button("AAPL", variant="success")
-        yield Button("GOOGL", variant="error", classes="hidden")
-        yield Button("AMAZN", variant="success")
-        yield Button("TSLA", variant="error")
+    last_update_time = reactive(0)
+    def watch_last_update_time(self):
+        # time = self.last_update_time 
+        self.update(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %z')}")
 
     @on(Button.Pressed)
     def a_method(self):
-        self.app.exit()
+        # self.app.exit()
+        time_display = app.query_one(LastUpdateInfo)
+        time_display.last_update_time = datetime.now()
+
+class PositionActions(Static):
+    """Buttons for Stock Watchlist"""
+    def compose(self):
+        yield Button("Buy", variant="success")
+        yield Button("Sell", variant="error")
+        yield Button("Refresh", variant="default")
+
+    @on(Button.Pressed)
+    def update_refresh_time(self):
+        # self.app.exit()
+        time_display = app.query_one(LastUpdateInfo)
+        time_display.last_update_time = datetime.now()
+
+
+class PortfolioTable(Static):
+    """Container for Actual Stock Portfolio"""
+
+    def compose(self):
+        yield DataTable(id="Portfolio")
+    
+    def on_mount(self) -> None:
+        table = self.query_one(DataTable)
+        table.add_columns(*ROWS[0])
+        table.add_rows(ROWS[1:])
+
+
+class PotfolioSummary(Static):
+    """Widget to display Portfolio Summary."""
+    VALUE = 1000
+    DAYCHANGE = 50
+    GAINLOSS = 5
+    PORTFOLIO_VALUE_MESSAGE = f"""
+    Total Portoflio Trade Value: {VALUE}\n
+    Day Change: {DAYCHANGE}\n
+    Gain/Loss : {GAINLOSS}"""
+    
+    def compose(self):
+        # yield Markdown(self.PORTFOLIO_VALUE_MESSAGE + "\\n" + self.PORTFOLIO_DAY_CHANGE_MESSAGE + "\n" + self.PORTFOLIO_GAINLOSS_MESSAGE, classes="Summary")
+        yield Label(self.PORTFOLIO_VALUE_MESSAGE, classes="Summary")
 
 class StockTrackerApp(App):
+
     CSS_PATH = "style.tcss"
 
     BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit_application", "Quit")]
@@ -42,26 +80,13 @@ class StockTrackerApp(App):
     
     def compose(self) -> ComposeResult:
         """Widgets for the app"""
-        yield Header()
+        yield Header("Stock Portfolio Tracker")
         yield Footer()
-        yield DataTable()
+        yield PortfolioTable()
+        yield PotfolioSummary()
 
-        stockList = ['BUY', 'TSLA', 'AMZN']
-
-        # for stock in stockList:
-        #     stock_message = f"""{stock}\n89.75 <up>"""
-        #     yield Button(stock_message, variant="primary")
-
-        yield StockWatch()
-
-    def on_mount(self) -> None:
-        table = self.query_one(DataTable)
-        table.add_columns(*ROWS[0])
-        table.add_rows(ROWS[1:])
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        # print("Button Pressed")
-        self.exit(str(event.button))
+        yield PositionActions()
+        yield LastUpdateInfo(f"Last Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S %z')}")
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
@@ -69,7 +94,7 @@ class StockTrackerApp(App):
 
     def action_quit_application(self) -> None: 
         """Quit application"""
-        self.exit() 
+        self.exit()
 
 if __name__ == "__main__":
     app = StockTrackerApp()
