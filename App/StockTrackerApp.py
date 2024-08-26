@@ -79,6 +79,14 @@ class PositionActions(Static):
     def action_sell_stock(self) -> None: 
         app.switch_mode("sellstock")
 
+    @on(Button.Pressed, "#button_Deposit")
+    def action_deposit(self) -> None: 
+        app.switch_mode("deposit")
+    
+    @on(Button.Pressed, "#button_Withdraw")
+    def action_withdraw(self) -> None: 
+        app.switch_mode("withdraw")
+
 class PortfolioTable(DataFrameTable):
     """Container for Actual Stock Portfolio""" 
 
@@ -126,7 +134,7 @@ class Column_Narrow(VerticalScroll):
     DEFAULT_CSS = """
     Column_Narrow {
         height: 1fr;
-        width: 1fr;
+        width: 20;
         margin: 0 0;
     }
     """
@@ -186,7 +194,7 @@ class BuyStockApp(Screen):
         results.message = sale_result[1]
 
     @on(Button.Pressed, "#button_Cancel")
-    def cancel_buy_screen(self):
+    def cancel_screen(self):
         app.switch_mode("portfolio")
 
 
@@ -220,7 +228,7 @@ class SellStockApp(Screen):
                 yield ResultsInfo("_", id="sell_results")
 
     @on(Button.Pressed, "#button_Cancel")
-    def cancel_buy_screen(self):
+    def cancel_screen(self):
         app.switch_mode("portfolio")
 
     @on(Button.Pressed, "#buttton_Execute_Sale")
@@ -242,16 +250,58 @@ class SellStockApp(Screen):
 
 class DepositApp(Screen):
     """Screen for the sell stock action"""
-    def compose(self) -> ComposeResult: 
-        yield Markdown(id="results")
+    CSS_PATH = "dictionary.tcss"
 
+    def compose(self) -> ComposeResult:
+        """Create screen for depositing money"""
+        yield Header()
+        yield Footer()
+        with VerticalScroll(id="results-container"):
+            yield Input(placeholder="Amount to Deposit", id="input_DepositAmount", type="number")
+            with Horizontal():
+                yield Button("Execute", variant="success", id="buttton_Execute")
+                yield Button("Back to Portfolio", variant="error", id="button_Cancel")
+                yield ResultsInfo("_", id="deposit_results")
+
+    @on(Button.Pressed, "#button_Cancel")
+    def cancel_screen(self):
+        app.switch_mode("portfolio")
+
+    @on(Button.Pressed, "#buttton_Execute")
+    def execute_Deposit(self):
+        amount = float(self.query_one("#input_DepositAmount").value)
+        deposit_result = portfolio.deposit(amount)
+        results = self.query_one("#deposit_results")
+        results.message = f"Deposit Completed. New balance: $ {deposit_result:.2f}"
 
 ####################################################################################################################################
 
 class WithdrawApp(Screen):
-    """Screen for the sell stock action"""
-    def compose(self) -> ComposeResult: 
-        yield Markdown(id="results")
+    """Screen for the withdraw money action"""
+    CSS_PATH = "dictionary.tcss"
+
+    def compose(self) -> ComposeResult:
+        """Creatte screen for withdrawing money"""
+        yield Header()
+        yield Footer()
+        with VerticalScroll(id="results-container"):
+            yield Input(placeholder="Amount to Withdraw", id="input_WithdrawalAmount", type="number")
+            with Horizontal():
+                yield Button("Execute", variant="success", id="buttton_Execute")
+                yield Button("Back to Portfolio", variant="error", id="button_Cancel")
+                yield ResultsInfo("_", id="withdraw_results")
+
+    @on(Button.Pressed, "#button_Cancel")
+    def cancel_screen(self):
+        app.switch_mode("portfolio")
+    
+    @on(Button.Pressed, "#buttton_Execute")
+    def execute_Withdrawal(self):
+        amount = float(self.query_one("#input_WithdrawalAmount").value)
+        withrdawal_result = portfolio.withdraw(amount)
+        results = self.query_one("#withdraw_results")
+        results.message = f"Withdrawal Completed. New balance: $ {withrdawal_result:.2f}"
+
 
 
 class StockTrackerLayoutApp(App):
@@ -264,7 +314,7 @@ class StockTrackerLayoutApp(App):
         ("d", "switch_mode('deposit')", "Deposit"),
         ("w", "switch_mode('withdraw')", "Withdraw"),
         ("r", "refresh_data"), 
-        ("d", "toggle_dark", "Toggle Dark Mode"), 
+        ("l", "toggle_dark", "Toggle Dark Mode"), 
         ("q", "quit_application", "Quit")
     ]
     MODES = {

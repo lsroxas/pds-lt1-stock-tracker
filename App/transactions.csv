@@ -7,3 +7,5 @@ date,transaction,ticker,initialbalance,endingbalance
 08/26/2024,Buy,MSFT,993200.0,992550.0
 08/26/2024,Buy,MSFT,992550.0,991550.0
 08/26/2024,Sell,MSFT,991550.0,995550.0
+08/26/2024,Deposit,,995550.0,996550.0
+08/26/2024,Withdraw,,997550.0,996550.0
