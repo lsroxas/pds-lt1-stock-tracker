@@ -9,6 +9,17 @@ class Stock:
     def __init__(self, ticker):
         self.ticker = ticker
         self.data = None
+    
+    def get_shortname(self):
+        # info = None 
+        # try:
+        #     info = yf.Ticker(self.ticker).info
+        # except:
+        #     print(f"Cannot get shortname of {t}, it probably does not exist")
+        # finally:
+        #     return info.get('shortName', None)
+        return yf.Ticker(self.ticker).info.get('shortName', None)
+        
 
     def get_name(self, ticker):
         return yf.Ticker(ticker).info['shortName']
@@ -35,7 +46,7 @@ class Stock:
     
 
 class Portfolio:
-    def __init__(self, portfolio_filename="porfolio.csv", transaction_history="transactions.csv", initial_balance=10000., transaction_fee=10.):
+    def __init__(self, portfolio_filename="porfolio.csv", transaction_history="transactions.csv", initial_balance=10000., transaction_fee=0.):
         self.balance = initial_balance
         self.transaction_fee = transaction_fee
         self.portfolio_filename = portfolio_filename
@@ -75,9 +86,14 @@ class Portfolio:
         self.balance -= amount
 
     ## portfolio actions ##
-    def buy_stock(self, ticker, shares, price):
+    def buy_stock(self, ticker, shares, price, tf=None):
         stock = Stock(ticker)
+        if stock.get_shortname() is None:
+            return (False, "Cannot get info on ticker.")
+        
         current_price = stock.get_current_price()
+        # if tf is None: 
+        #     tf = self.transaction_fee
         total_cost = price * shares + self.transaction_fee
 
         if self.balance >= total_cost:
@@ -86,7 +102,7 @@ class Portfolio:
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'] += shares
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] = ((
                             (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * 
-                             self.stocks.loc[self.stocks['ticker'] == ticker, 'shares']) + (shares * (price+self.transaction_fee))
+                             self.stocks.loc[self.stocks['ticker'] == ticker, 'shares']) + (shares * (total_cost))
                         ) / (self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'] + shares)).astype('float64')
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'market_value'] = self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'] * current_price
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'gainloss'] = self.stocks.loc[self.stocks['ticker'] == ticker, 'market_value'] - (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'])

@@ -28,7 +28,7 @@ except ImportError:
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
-from textual.containers import HorizontalScroll, VerticalScroll, ScrollableContainer
+from textual.containers import HorizontalScroll, VerticalScroll, ScrollableContainer, Horizontal, Vertical
 from textual.widgets import Header, Footer, Button, Static, DataTable, Label, Input, Markdown
 from textual.screen import Screen
 from textual_pandas.widgets import DataFrameTable
@@ -44,12 +44,22 @@ class LastUpdateInfo(Static):
         # time = self.last_update_time 
         self.update(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %z')}")
 
+class ResultsInfo(Static):
+    """Shows last update time of stock information"""
+    message = reactive("")
+    def watch_message(self):
+        # time = self.last_update_time 
+        self.update(f"{self.message}")
+
+
 class PositionActions(Static):
     """Buttons for Stock Watchlist"""
     def compose(self):
         yield Button("Buy", variant="success", id="button_Buy")
         yield Button("Sell", variant="error", id="button_Sell")
         yield Button("Refresh", variant="default", id="button_Refresh")
+        yield Button("Deposit", id="button_Deposit")
+        yield Button("Withraw", id="button_Withdraw")
         yield Button("Quit", variant="default", id="button_Quit")
 
     @on(Button.Pressed, "#button_Refresh")
@@ -61,20 +71,25 @@ class PositionActions(Static):
     def quit_application(self):
         app.exit()
 
+    @on(Button.Pressed, "#button_Buy")
+    def action_buy_stock(self) -> None:
+        app.switch_mode("buystock")
 
+    @on(Button.Pressed, "#buttton_Sell")
+    def action_sell_stock(self) -> None: 
+        app.switch_mode("sellstock")
 
 class PortfolioTable(DataFrameTable):
     """Container for Actual Stock Portfolio"""
 
     def compose(self):
-        yield DataFrameTable()
+        yield DataFrameTable(id="df_portfolio")
 
     def on_mount(self) -> None:
         table = self.query_one(DataFrameTable)
-        portfolio_df =portfolio.get_portfolio()
-        portfolio_df.columns = ['Ticker', 'Current Price', 'Average Price', '# of Shares', 'Market Value', 'Gain/Loss', '% Change', '% of Portfolio']
+        portfolio_df = portfolio.get_portfolio()
+        # portfolio_df.columns = ['Ticker', 'Current Price', 'Average Price', '# of Shares', 'Market Value', 'Gain/Loss', '% Change', '% of Portfolio']
         table.add_df(portfolio_df)
-
         self.format_results()
     
     def format_results(self) -> None: 
@@ -99,33 +114,27 @@ class Column_Wide(VerticalScroll):
     Column_Wide {
         height: 1fr;
         width: 3fr;
-        margin: 0 2;
+        margin: 1 1;
     }
     """
     def compose(self) -> ComposeResult:
         yield PortfolioTable()
         yield LastUpdateInfo(id="display_UpdateTime")
-        yield PotfolioSummary()
+        yield PotfolioSummary(id="display_Summary")
         
-
-
 class Column_Narrow(VerticalScroll):
     DEFAULT_CSS = """
     Column_Narrow {
         height: 1fr;
         width: 1fr;
-        margin: 0 2;
+        margin: 0 0;
     }
     """
     def compose(self) -> ComposeResult:
         yield PositionActions()
 
 class StockTrackerApp(Screen):
-    # CSS_PATH = "style.tcss"
-    OWNER = "LT1"
-
-    BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit_application", "Quit")]
-    
+    """Screen for the actual stock tracker"""
     def compose(self) -> ComposeResult:
         """Widgets for the app"""
         yield Header()
@@ -134,6 +143,114 @@ class StockTrackerApp(Screen):
             yield Column_Wide()
             yield Column_Narrow()
 
+    def on_mount(self):
+        self.title = "Stock Tracker"
+        self.sub_title = f"{app.OWNER}'s Portfolio"
+
+####################################################################################################################################
+
+class BuyStockApp(Screen):
+    """Screen for the buy stock action"""
+    CSS_PATH = "dictionary.tcss"
+
+    def compose(self) -> ComposeResult:
+        """Creatte screen for buying stocks"""
+        yield Header()
+        yield Footer()
+        yield Input(placeholder="Search for a stock", id="input_Ticker")
+        with VerticalScroll(id="results-container"):
+            with HorizontalScroll():
+                yield Markdown(id="results")
+            with VerticalScroll():
+                yield Input(placeholder="Sale Price", id="input_salePrice", type="number")
+                yield Input(placeholder="# Shares", id="input_NoOfShares", type="integer")
+                yield Input(placeholder="Transaction Fee (defaults to 0)", id="input_TransactionFee", type="number")
+                with Horizontal():
+                    yield Button("Execute", variant="success", id="buttton_Execute_Sale")
+                    yield Button("Back to Portfolio", variant="error", id="button_Cancel")
+                    yield ResultsInfo("_", id="buy_results")
+
+    @on(Button.Pressed, "#buttton_Execute_Sale")
+    def execute_sale(self):
+        ticker = self.query_one("#input_Ticker").value
+        sale_price = float(self.query_one("#input_salePrice").value)
+        no_of_shares = int(self.query_one("#input_NoOfShares").value)
+        transaction_fee = self.query_one("#input_TransactionFee").value
+        if transaction_fee == "":
+            transaction_fee = portfolio.transaction_fee
+        else:
+            transaction_fee = float(transaction_fee)
+        sale_result = portfolio.buy_stock(ticker, no_of_shares, sale_price, transaction_fee)
+        results = self.query_one("#buy_results")
+        results.message = sale_result[1]
+
+    @on(Button.Pressed, "#button_Cancel")
+    def cancel_buy_screen(self):
+        app.switch_mode("portfolio")
+
+
+####################################################################################################################################
+
+class SellStockApp(Screen):
+    """Screen for the sell stock action"""
+    CSS_PATH = "dictionary.tcss"
+
+    def compose(self) -> ComposeResult:
+        """Creatte screen for buying stocks"""
+        yield Header()
+        yield Footer()
+        with VerticalScroll(id="results-container"):
+            ### Place info here
+            yield Input(placeholder="Sale Price", id="input_salePrice", type="number")
+            yield Input(placeholder="# Shares", id="input_NoOfShares", type="integer")
+            yield Input(placeholder="Transaction Fee (defaults to 0)", id="input_TransactionFee", type="number")
+            with Horizontal():
+                yield Button("Execute", variant="success", id="buttton_Execute_Sale")
+                yield Button("Back to Portfolio", variant="error", id="button_Cancel")
+                yield ResultsInfo("_", id="buy_results")
+
+####################################################################################################################################
+
+class DepositApp(Screen):
+    """Screen for the sell stock action"""
+    def compose(self) -> ComposeResult: 
+        yield Markdown(id="results")
+
+
+####################################################################################################################################
+
+class WithdrawApp(Screen):
+    """Screen for the sell stock action"""
+    def compose(self) -> ComposeResult: 
+        yield Markdown(id="results")
+
+
+class StockTrackerLayoutApp(App):
+    # CSS_PATH = "style.tcss"
+    OWNER = "LT1"
+    BINDINGS = [
+        ("p", "switch_mode('portfolio')", "Show Portfolio"),
+        ("b", "switch_mode('buystock')", "Buy Stock"), 
+        ("s", "switch_mode('sellstock')", "Sell Stock"), 
+        ("d", "switch_mode('deposit')", "Deposit"),
+        ("w", "switch_mode('withdraw')", "Withdraw"),
+        ("r", "refresh_data"), 
+        ("d", "toggle_dark", "Toggle Dark Mode"), 
+        ("q", "quit_application", "Quit")
+    ]
+    MODES = {
+        "portfolio" : StockTrackerApp, 
+        "buystock" : BuyStockApp, 
+        "sellstock" : SellStockApp,
+        "deposit" : DepositApp, 
+        "withdraw": WithdrawApp
+    }
+
+    def on_ready(self) -> None:
+        # self.push_screen(StockTrackerApp())
+        # self.switch_mode("portfolio")
+        self.switch_mode("sellstock")
+
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
         app.dark = not app.dark
@@ -141,16 +258,6 @@ class StockTrackerApp(Screen):
     def action_quit_application(self) -> None: 
         """Quit application"""
         app.exit()
-
-    def on_mount(self):
-        self.title = "Stock Tracker"
-        self.sub_title = f"{self.OWNER}'s Portfolio"
-
-
-
-class StockTrackerLayoutApp(App):
-    def on_ready(self) -> None:
-        self.push_screen(StockTrackerApp())
 
 if __name__ == "__main__":
     portfolio = st.Portfolio()
