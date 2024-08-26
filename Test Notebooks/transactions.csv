@@ -1,0 +1,5 @@
+date,transaction,ticker,initialbalance,endingbalance
+08/01/2024,Deposit,,0.0,1000000.0
+08/25/2024,Buy,AAPL,1000000.0,997990.0
+08/25/2024,Buy,AMZN,995980.0,994970.0
+08/25/2024,Sell,AMZN,993960.0,994700.0

@@ -9,20 +9,6 @@ class Stock:
     def __init__(self, ticker):
         self.ticker = ticker
         self.data = None
-    
-    def get_shortname(self):
-        # info = None 
-        # try:
-        #     info = yf.Ticker(self.ticker).info
-        # except:
-        #     print(f"Cannot get shortname of {t}, it probably does not exist")
-        # finally:
-        #     return info.get('shortName', None)
-        return yf.Ticker(self.ticker).info.get('shortName', None)
-        
-
-    def get_name(self, ticker):
-        return yf.Ticker(ticker).info['shortName']
 
     def get_history(self, period='1mo', interval='1d'):
         self.data = yf.Ticker(self.ticker).history(period=period, interval=interval)
@@ -41,12 +27,12 @@ class Stock:
         """tickers is a list of ticker names"""
         retFrame = pd.DataFrame(columns=['ticker', 'current_price'])
         for ticker in tickers:
+            # new_row = {'ticker': ticker, 'current_price': yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']}
+            # retFrame.append(new_row, ignore_index=True)
             retFrame.loc[len(retFrame)] = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
         return retFrame
-    
-
 class Portfolio:
-    def __init__(self, portfolio_filename="porfolio.csv", transaction_history="transactions.csv", initial_balance=10000., transaction_fee=0.):
+    def __init__(self, portfolio_filename="porfolio.csv", transaction_history="transactions.csv", initial_balance=10000., transaction_fee=10.):
         self.balance = initial_balance
         self.transaction_fee = transaction_fee
         self.portfolio_filename = portfolio_filename
@@ -78,24 +64,17 @@ class Portfolio:
 
     ## available transactions ##
     def deposit(self, amount):
-        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Deposit', '', self.balance, self.balance + amount])
+        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Deposit', ticker, self.balance, self.balance + amount])
         self.balance += amount
-        return self.balance
         
     def withdraw(self, amount):
-        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Withdraw', '', self.balance, self.balance - amount])
+        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Withdraw', ticker, self.balance, self.balance - amount])
         self.balance -= amount
-        return self.balance
 
     ## portfolio actions ##
-    def buy_stock(self, ticker, shares, price, tf=None):
+    def buy_stock(self, ticker, shares, price):
         stock = Stock(ticker)
-        if stock.get_shortname() is None:
-            return (False, "Cannot get info on ticker.")
-        
         current_price = stock.get_current_price()
-        # if tf is None: 
-        #     tf = self.transaction_fee
         total_cost = price * shares + self.transaction_fee
 
         if self.balance >= total_cost:
@@ -104,7 +83,7 @@ class Portfolio:
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'] += shares
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] = ((
                             (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * 
-                             self.stocks.loc[self.stocks['ticker'] == ticker, 'shares']) + (shares * (total_cost))
+                             self.stocks.loc[self.stocks['ticker'] == ticker, 'shares']) + (shares * (price+self.transaction_fee))
                         ) / (self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'] + shares)).astype('float64')
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'market_value'] = self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'] * current_price
                 self.stocks.loc[self.stocks['ticker'] == ticker, 'gainloss'] = self.stocks.loc[self.stocks['ticker'] == ticker, 'market_value'] - (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'])
