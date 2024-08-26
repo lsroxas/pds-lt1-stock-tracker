@@ -11,3 +11,6 @@ App/code_browser.tcss
 App/__pycache__/StockTracker.cpython-311.pyc
 Test Notebooks/Class Tests.ipynb
 Test Notebooks/.ipynb_checkpoints/Class Tests-checkpoint.ipynb
+App/competitors_app.tcss
+App/details_screen.tcss
+App/inteeractive_table.py

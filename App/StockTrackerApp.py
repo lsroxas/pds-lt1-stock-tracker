@@ -75,12 +75,12 @@ class PositionActions(Static):
     def action_buy_stock(self) -> None:
         app.switch_mode("buystock")
 
-    @on(Button.Pressed, "#buttton_Sell")
+    @on(Button.Pressed, "#button_Sell")
     def action_sell_stock(self) -> None: 
         app.switch_mode("sellstock")
 
 class PortfolioTable(DataFrameTable):
-    """Container for Actual Stock Portfolio"""
+    """Container for Actual Stock Portfolio""" 
 
     def compose(self):
         yield DataFrameTable(id="df_portfolio")
@@ -160,6 +160,7 @@ class BuyStockApp(Screen):
         yield Input(placeholder="Search for a stock", id="input_Ticker")
         with VerticalScroll(id="results-container"):
             with HorizontalScroll():
+                ### TODO: Add logic to update result based on search
                 yield Markdown(id="results")
             with VerticalScroll():
                 yield Input(placeholder="Sale Price", id="input_salePrice", type="number")
@@ -195,19 +196,47 @@ class SellStockApp(Screen):
     """Screen for the sell stock action"""
     CSS_PATH = "dictionary.tcss"
 
+    current_ticker = reactive("")
+
+    def watch_current_ticker(self):
+        # time = self.last_update_time 
+        # self.update(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %z')}")
+        ...
+
     def compose(self) -> ComposeResult:
-        """Creatte screen for buying stocks"""
+        """Create screen for buying stocks"""
         yield Header()
         yield Footer()
         with VerticalScroll(id="results-container"):
-            ### Place info here
-            yield Input(placeholder="Sale Price", id="input_salePrice", type="number")
-            yield Input(placeholder="# Shares", id="input_NoOfShares", type="integer")
+            ### TODO: Add logic to update based on currently selected cell in sell 
+            yield PortfolioTable()
+            yield Input(placeholder="Stock to Sell", id="input_Ticker", type="text")
+            yield Input(placeholder="Selling Price", id="input_salePrice", type="number")
+            yield Input(placeholder="# Shares to Sell", id="input_NoOfShares", type="integer")
             yield Input(placeholder="Transaction Fee (defaults to 0)", id="input_TransactionFee", type="number")
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                yield ResultsInfo("_", id="buy_results")
+                yield ResultsInfo("_", id="sell_results")
+
+    @on(Button.Pressed, "#button_Cancel")
+    def cancel_buy_screen(self):
+        app.switch_mode("portfolio")
+
+    @on(Button.Pressed, "#buttton_Execute_Sale")
+    def execute_sale(self):
+        ticker = self.query_one("#input_Ticker").value
+        sale_price = float(self.query_one("#input_salePrice").value)
+        no_of_shares = int(self.query_one("#input_NoOfShares").value)
+        transaction_fee = self.query_one("#input_TransactionFee").value
+        if transaction_fee == "":
+            transaction_fee = portfolio.transaction_fee
+        else:
+            transaction_fee = float(transaction_fee)
+        sale_price += transaction_fee
+        sale_result = portfolio.sell_stock(ticker, no_of_shares, sale_price)
+        results = self.query_one("#sell_results")
+        results.message = sale_result[1]
 
 ####################################################################################################################################
 
@@ -246,10 +275,11 @@ class StockTrackerLayoutApp(App):
         "withdraw": WithdrawApp
     }
 
+    active_ticker = "AAPL"
+
     def on_ready(self) -> None:
         # self.push_screen(StockTrackerApp())
-        # self.switch_mode("portfolio")
-        self.switch_mode("sellstock")
+        self.switch_mode("portfolio")
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
