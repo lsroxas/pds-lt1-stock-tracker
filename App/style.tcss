@@ -19,6 +19,11 @@ PortfolioTable {
     layout: horizontal;
     align: center top; 
     padding-top: 1;
+    padding-bottom: 1;
+    height: 9;
+    margin: 2;
+    width: 100%;
+    content-align-horizontal: center;
 }
 
 .summary {
@@ -29,4 +34,29 @@ PortfolioTable {
 
 .hidden {
     display: none;
+}
+
+Input {
+    layout: horizontal;
+    align: left middle;
+    background: $boost;
+    width: 30;
+    margin: 1 1;
+}
+
+#results {
+    width: 100%;
+    height: auto;    
+}
+
+#results-container {
+    background: $background 50%;
+    margin: 1 1;
+    height: 100%;
+    overflow: hidden auto;
+    border: tall $background;
+}
+
+#results-container:focus {
+    border: tall $accent;
 }
