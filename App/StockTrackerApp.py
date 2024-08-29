@@ -242,19 +242,6 @@ class BuyStockApp(Screen):
                 if 'shortName' in results.keys(): ### Successful search
                     lines.append(f"# {results['shortName']}")
                     # lines.append(f"Current Price: {0.00}")
-                    # lines.append()
-                # lines.append(results["message"])
-            # elif isinstance(results, list):
-            #     for result in results:
-            #         lines.append(f"# {result['shortName']}")
-            #         lines.append("")
-            #         for meaning in result.get("meanings", []):
-            #             lines.append(f"_{meaning['partOfSpeech']}_")
-            #             lines.append("")
-            #             for definition in meaning.get("definitions", []):
-            #                 lines.append(f" - {definition['definition']}")
-            #             lines.append("---")
-
             return "\n".join(lines)
             # return "The best stock"
 
