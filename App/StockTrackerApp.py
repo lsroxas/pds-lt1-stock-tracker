@@ -70,7 +70,7 @@ class LastUpdateInfo(Static):
 
 class PotfolioSummary(Static):
     """Widget to display Portfolio Summary."""
-    
+
     def compose(self):
         # yield Markdown(self.PORTFOLIO_VALUE_MESSAGE + "\\n" + self.PORTFOLIO_DAY_CHANGE_MESSAGE + "\n" + self.PORTFOLIO_GAINLOSS_MESSAGE, classes="Summary")
         value_message = f"""
@@ -80,14 +80,6 @@ class PotfolioSummary(Static):
         Gain/Loss : {portfolio.portfolio_pct_change*100:.2f}%"""
         yield Label(value_message, classes="summary")
 
-class ResultsInfo(Static):
-    """Shows last update time of stock information"""
-    message = reactive("")
-    def watch_message(self):
-        # time = self.last_update_time 
-        self.update(f"{self.message}")
-
-
 class PositionActions(Static):
     """Buttons for Stock Watchlist"""
     def compose(self):
@@ -95,7 +87,7 @@ class PositionActions(Static):
         yield Button("Sell", variant="error", id="button_Sell")
         yield Button("Refresh", variant="default", id="button_Refresh")
         yield Button("Deposit", id="button_Deposit")
-        yield Button("Withraw", id="button_Withdraw")
+        yield Button("Withdraw", id="button_Withdraw")
         yield Button("Quit", variant="default", id="button_Quit")
 
     @on(Button.Pressed, "#button_Refresh")
@@ -139,10 +131,10 @@ class PortfolioTable(DataFrameTable):
         table = self.query_one(DataFrameTable)
         table.header_height = 1
 
-    def update_table(self):
-        print("----------- Updating Table -----------")
-        df_portfolio = portfolio.get_portfolio()
-        self.update_df(df_portfolio)
+    # def update_table(self):
+    #     print("----------- Updating Table -----------")
+    #     df_portfolio = portfolio.get_portfolio()
+    #     self.update_df(df_portfolio)
         
 class Column_Narrow(VerticalScroll):
     DEFAULT_CSS = """
@@ -161,6 +153,10 @@ class StockTrackerApp(Screen):
     Vertical {
         height: auto;
     }
+    
+    #container_dataframe_table {
+        height: 15;
+    }
     """
     def compose(self) -> ComposeResult:
         """Widgets for the app"""
@@ -170,9 +166,9 @@ class StockTrackerApp(Screen):
         with Vertical():
             with Horizontal():
                 with Vertical():
-                    with Container(id="container_dataframe_table"):
+                    with VerticalScroll(id="container_dataframe_table"):
                         yield PortfolioTable(id="dataframetable_Portfolio")
-                    with Vertical():
+                    with Vertical(id="container_summary"):
                         yield LastUpdateInfo(id="display_UpdateTime")
                         yield PotfolioSummary(id="display_Summary")
                 with Vertical():
@@ -204,9 +200,9 @@ class BuyStockApp(Screen):
         yield Footer()
         with VerticalScroll():
             yield Input(placeholder="Search for a stock", id="input_Ticker")
-            with HorizontalScroll():
-                ### TODO: Add logic to update result based on search
-                yield Markdown(id="results")
+            # with HorizontalScroll():
+            #     ### TODO: Add logic to update result based on search
+            #     # yield Markdown(id="results")
             with Vertical():
                 yield Input(placeholder="Sale Price", id="input_salePrice", type="number")
                 yield Input(placeholder="# Shares", id="input_NoOfShares", type="integer")
@@ -214,7 +210,6 @@ class BuyStockApp(Screen):
                 with Horizontal():
                     yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                     yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                    # yield ResultsInfo("_", id="buy_results")
 
     @on(Button.Pressed, "#buttton_Execute_Sale")
     def execute_sale(self):
@@ -329,7 +324,6 @@ class WithdrawApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                # yield ResultsInfo("_", id="withdraw_results")
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -370,10 +364,7 @@ class StockTrackerLayoutApp(App):
         "withdraw": WithdrawApp
     }
 
-    # active_ticker = "AAPL"
-
     def on_ready(self) -> None:
-        # self.push_screen(StockTrackerApp())
         self.switch_mode("portfolio")
 
     def action_toggle_dark(self) -> None:
@@ -396,7 +387,13 @@ class StockTrackerLayoutApp(App):
 
         time_display = app.query_one("#display_UpdateTime")
         time_display.last_update_time = datetime.now()
-        # app.exit()
+
+        container = app.query_one("#container_summary")
+        summary_display = container.query_one(PotfolioSummary)
+        summary_display.remove()
+        summary_display = PotfolioSummary()
+        container.mount(summary_display)
+
 
 if __name__ == "__main__":
     portfolio = st.Portfolio()

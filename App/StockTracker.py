@@ -137,7 +137,7 @@ class Portfolio:
             #update pct_portfolio for all stocks in df
             self.stocks['pct_portfolio'] = self.stocks['market_value'] / self.stocks['market_value'].sum()
             self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Buy', ticker, self.balance, self.balance - total_cost])
-            self.balance -= total_cost
+            # self.balance -= total_cost
             self.save_portfolio(self.portfolio_filename)
             return (True, f"Bought {shares} shares of {ticker} for {total_cost}.")
         else:
@@ -159,7 +159,7 @@ class Portfolio:
                     self.stocks.loc[self.stocks['ticker'] == ticker, 'pct_change'] = (self.stocks.loc[self.stocks['ticker'] == ticker, 'gainloss'] / (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'])).astype('float64')
                 self.stocks['pct_portfolio'] = self.stocks['market_value'] / self.stocks['market_value'].sum()
                 self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Sell', ticker, self.balance, self.balance + total_revenue])
-                self.balance += total_revenue
+                # self.balance += total_revenue
                 self.save_portfolio(self.portfolio_filename)
                 return (True, f"Sold {shares} shares of {ticker} for {total_revenue}.")
             else:
@@ -190,9 +190,9 @@ class Portfolio:
     def refresh_data(self):
         ticker_list = self.stocks['ticker'].to_list()
         df_current_prices = Stock.get_current_prices(ticker_list)
-        self.stocks['market_price'] = self.stocks['ticker'].map(df_current_prices.set_index('ticker')['current_price'])
+        self.stocks['marketprice'] = self.stocks['ticker'].map(df_current_prices.set_index('ticker')['current_price'])
         ## update other columns dependent on market price
-        self.stocks['market_value'] = self.stocks['shares'] * self.stocks['market_price']
+        self.stocks['market_value'] = self.stocks['shares'] * self.stocks['marketprice']
         self.stocks['gainloss'] = self.stocks['market_value'] - (self.stocks['average_price'] * self.stocks['shares'])
         self.stocks['pct_change'] = self.stocks['gainloss'] / (self.stocks['average_price'] * self.stocks['shares'])
         ## update portfolio values
