@@ -40,13 +40,12 @@ class Stock:
     def get_current_prices(tickers):
         """tickers is a list of ticker names"""
         retFrame = pd.DataFrame(columns=['ticker', 'current_price'])
-        index = 0
         for ticker in tickers:
             # retFrame.loc[index] = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
             # retFrame = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
-            newrow = {ticker,  yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']}
-            retframe = retframe._append(newrow)
-        return retFrame
+            newrow = [ticker,  yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
+            retFrame.loc[len(retFrame)] = newrow
+        return retFrame  
     
 
 class Portfolio:
