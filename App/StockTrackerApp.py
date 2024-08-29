@@ -196,13 +196,14 @@ class BuyStockApp(Screen):
 
     def compose(self) -> ComposeResult:
         """Creatte screen for buying stocks"""
+        self.stock = st.Stock('')
         yield Header()
         yield Footer()
         with VerticalScroll():
             yield Input(placeholder="Search for a stock", id="input_Ticker")
-            # with HorizontalScroll():
-            #     ### TODO: Add logic to update result based on search
-            #     # yield Markdown(id="results")
+            with HorizontalScroll(id="results_container"):
+                ### TODO: Add logic to update result based on search
+                yield Markdown(id="results_markdown")
             with Vertical():
                 yield Input(placeholder="Sale Price", id="input_salePrice", type="number")
                 yield Input(placeholder="# Shares", id="input_NoOfShares", type="integer")
@@ -210,6 +211,39 @@ class BuyStockApp(Screen):
                 with Horizontal():
                     yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                     yield Button("Back to Portfolio", variant="error", id="button_Cancel")
+
+    async def on_input_changed(self, message: Input.Changed) -> None:
+        """A coroutine to handle a text changed message."""
+        if message.value:
+            self.lookup_symbol(message.value)
+        else:
+            # Clear the results
+            await self.query_one("#results_markdown", Markdown).update("")
+
+
+    @work(exclusive=True)
+    async def lookup_symbol(self, word: str) -> None:
+        """Looks up a word."""
+
+        try:
+            shortName = self.stock.get_name(word)
+        except Exception:
+            self.query_one("#results_markdown", Markdown).update(shortName)
+            return
+
+        if word == self.query_one("#input_Ticker", Input).value:
+            markdown = self.make_word_markdown(self.stock.get_info(word))
+            self.query_one("#results_markdown", Markdown).update(markdown)
+
+    def make_word_markdown(self, results: object) -> str:
+            """Convert the results in to markdown."""
+            lines = []
+            if isinstance(results, dict):
+                if 'shortName' in results.keys(): ### Successful search
+                    lines.append(f"# {results['shortName']}")
+                    # lines.append(f"Current Price: {0.00}")
+            return "\n".join(lines)
+            # return "The best stock"
 
     @on(Button.Pressed, "#buttton_Execute_Sale")
     def execute_sale(self):
