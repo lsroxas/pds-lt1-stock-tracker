@@ -8,3 +8,8 @@ date,transaction,ticker,initialbalance,endingbalance
 08/29/2024,Withdraw,,10000.0,9000.0
 08/29/2024,Withdraw,,9000.0,8000.0
 08/29/2024,Deposit,,8000.0,9000.0
+08/29/2024,Withdraw,,9000.0,8000.0
+08/29/2024,Deposit,,8000.0,9000.0
+08/29/2024,Deposit,,9000.0,10000.0
+08/29/2024,Withdraw,,10000.0,9000.0
+08/29/2024,Deposit,,9000.0,10000.0

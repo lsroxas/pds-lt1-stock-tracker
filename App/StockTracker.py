@@ -72,17 +72,27 @@ class Portfolio:
 
     def add_transaction(self, transactiondata):
         ## transactiondata = [date, transaction, ticker, initialbalance, endingbalance]
-        self.balance = transactiondata[4] ## ending balance
-        self.transaction_history.loc[len(self.transaction_history)] = transactiondata
-        self.save_transactions(self.transaction_history_filename)
+        try:
+            self.balance = transactiondata[4] ## ending balance
+            self.transaction_history.loc[len(self.transaction_history)] = transactiondata
+            self.save_transactions(self.transaction_history_filename)
+            return True
+        except:
+            return False
 
     def deposit(self, amount):
-        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Deposit', '', self.balance, self.balance + amount])
-        return self.balance
+        if amount > 0: 
+            return_value = self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Deposit', '', self.balance, self.balance + amount])
+        else:
+            return_value = False 
+        return return_value, self.balance 
         
     def withdraw(self, amount):
-        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Withdraw', '', self.balance, self.balance - amount])
-        return self.balance
+        if self.balance > amount and amount >= 0:
+            return_value = self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Withdraw', '', self.balance, self.balance - amount])
+        else:
+            return_value = False
+        return return_value, self.balance 
 
     ## portfolio actions ##
     def buy_stock(self, ticker, shares, price, tf=None):

@@ -300,7 +300,11 @@ class DepositApp(Screen):
     def execute_Deposit(self):
         amount = float(self.query_one("#input_DepositAmount").value)
         deposit_result = portfolio.deposit(amount)
-        app.push_screen(MessageBox(f"Deposit Completed. New balance: $ {deposit_result:.2f}"))
+        if deposit_result[0]:
+            message = f"Deposit Completed. New balance: $ {deposit_result[1]:.2f}"
+        else:
+            message = f"Deposit Failed. Balance: $ {deposit_result[1]:.2f}"
+        app.push_screen(MessageBox(message))
 
 ####################################################################################################################################
 
@@ -327,8 +331,12 @@ class WithdrawApp(Screen):
     @on(Button.Pressed, "#buttton_Execute")
     def execute_Withdrawal(self):
         amount = float(self.query_one("#input_WithdrawalAmount").value)
-        withrdawal_result = portfolio.withdraw(amount)
-        app.push_screen(MessageBox(f"Withdrawal Completed. New balance: $ {withrdawal_result:.2f}"))
+        withdrawal_result = portfolio.withdraw(amount)
+        if withdrawal_result[0]:
+            message = f"Withdrawal Completed. New balance: $ {withdrawal_result[1]:.2f}"
+        else:
+            message = f"Withdrawal Failed. Balance: $ {withdrawal_result[1]:.2f}"
+        app.push_screen(MessageBox(message))
 
 class StockTrackerLayoutApp(App):
     # CSS_PATH = "style.tcss"
