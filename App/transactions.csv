@@ -13,3 +13,7 @@ date,transaction,ticker,initialbalance,endingbalance
 08/29/2024,Deposit,,9000.0,10000.0
 08/29/2024,Withdraw,,10000.0,9000.0
 08/29/2024,Deposit,,9000.0,10000.0
+08/29/2024,Buy,AAPL,10000.0,7735.1
+08/29/2024,Deposit,,7735.1,1007735.1
+08/29/2024,Buy,MSFT,1007735.1,925735.1
+08/29/2024,Sell,MSFT,925735.1,927790.1

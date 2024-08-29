@@ -207,7 +207,7 @@ class BuyStockApp(Screen):
                 with Horizontal():
                     yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                     yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                    yield ResultsInfo("_", id="buy_results")
+                    # yield ResultsInfo("_", id="buy_results")
 
     @on(Button.Pressed, "#buttton_Execute_Sale")
     def execute_sale(self):
@@ -220,8 +220,10 @@ class BuyStockApp(Screen):
         else:
             transaction_fee = float(transaction_fee)
         sale_result = portfolio.buy_stock(ticker, no_of_shares, sale_price, transaction_fee)
-        results = self.query_one("#buy_results")
-        results.message = sale_result[1]
+        # results = self.query_one("#buy_results")
+        # results.message = sale_result[1]
+        app.push_screen(MessageBox(sale_result[1]))
+
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -255,7 +257,7 @@ class SellStockApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                yield ResultsInfo("_", id="sell_results")
+                # yield ResultsInfo("_", id="sell_results")
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -273,8 +275,10 @@ class SellStockApp(Screen):
             transaction_fee = float(transaction_fee)
         sale_price += transaction_fee
         sale_result = portfolio.sell_stock(ticker, no_of_shares, sale_price)
-        results = self.query_one("#sell_results")
-        results.message = sale_result[1]
+        # results = self.query_one("#sell_results")
+        # results.message = sale_result[1]
+        app.push_screen(MessageBox(sale_result[1]))
+
 
 ####################################################################################################################################
 
