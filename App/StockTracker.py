@@ -40,8 +40,12 @@ class Stock:
     def get_current_prices(tickers):
         """tickers is a list of ticker names"""
         retFrame = pd.DataFrame(columns=['ticker', 'current_price'])
+        index = 0
         for ticker in tickers:
-            retFrame.loc[len(retFrame)] = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
+            # retFrame.loc[index] = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
+            # retFrame = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
+            newrow = {ticker,  yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']}
+            retframe = retframe._append(newrow)
         return retFrame
     
 
@@ -136,7 +140,7 @@ class Portfolio:
             self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Buy', ticker, self.balance, self.balance - total_cost])
             self.balance -= total_cost
             self.save_portfolio(self.portfolio_filename)
-            return (True, f"Bought {shares} shares of {ticker} at {price} each.")
+            return (True, f"Bought {shares} shares of {ticker} for {total_cost}.")
         else:
             return (False, "Insufficient funds to complete this purchase.")
             
@@ -158,7 +162,7 @@ class Portfolio:
                 self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Sell', ticker, self.balance, self.balance + total_revenue])
                 self.balance += total_revenue
                 self.save_portfolio(self.portfolio_filename)
-                return (True, f"Sold {shares} shares of {ticker} at {price} each.")
+                return (True, f"Sold {shares} shares of {ticker} for {total_revenue}.")
             else:
                 return (False, "Not enough shares to sell.")
         else:

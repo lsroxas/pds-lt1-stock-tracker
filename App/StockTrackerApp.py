@@ -86,8 +86,9 @@ class PositionActions(Static):
 
     @on(Button.Pressed, "#button_Refresh")
     def update_refresh_time(self):
-        portfolio.refresh_data()
+        # portfolio.refresh_data()
         tables = app.query(PortfolioTable)
+        print(len(tables))
         for i in tables:
             i.update_table()
         time_display = self.app.query_one("#display_UpdateTime")
@@ -131,6 +132,7 @@ class PortfolioTable(DataFrameTable):
         table.header_height = 1
 
     def update_table(self):
+        print("----------- Updating Table -----------")
         df_portfolio = portfolio.get_portfolio()
         self.update_df(df_portfolio)
 
@@ -155,7 +157,7 @@ class Column_Wide(VerticalScroll):
     }
     """
     def compose(self) -> ComposeResult:
-        yield PortfolioTable()
+        yield PortfolioTable(id="dataframetable_Portfolio")
         yield LastUpdateInfo(id="display_UpdateTime")
         yield PotfolioSummary(id="display_Summary")
         
@@ -220,10 +222,15 @@ class BuyStockApp(Screen):
         else:
             transaction_fee = float(transaction_fee)
         sale_result = portfolio.buy_stock(ticker, no_of_shares, sale_price, transaction_fee)
-        # results = self.query_one("#buy_results")
-        # results.message = sale_result[1]
         app.push_screen(MessageBox(sale_result[1]))
-
+        # table = app.query_one("PortfolioTable")
+        # table.update_table()
+        # table.refresh()
+        # app.action_refresh_data()
+        # tables = app.query(PortfolioTable)
+        # for i in tables:
+        #     i.update_table()
+        #     i.compose()
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -247,9 +254,10 @@ class SellStockApp(Screen):
         """Create screen for buying stocks"""
         yield Header()
         yield Footer()
-        with VerticalScroll(id="results-container"):
+        with VerticalScroll():
             ### TODO: Add logic to update based on currently selected cell in sell 
-            yield PortfolioTable()
+            with Vertical(id="sell-results-container"):
+                yield PortfolioTable()
             yield Input(placeholder="Stock to Sell", id="input_Ticker", type="text")
             yield Input(placeholder="Selling Price", id="input_salePrice", type="number")
             yield Input(placeholder="# Shares to Sell", id="input_NoOfShares", type="integer")
@@ -257,7 +265,7 @@ class SellStockApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                # yield ResultsInfo("_", id="sell_results")
+    
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -275,9 +283,13 @@ class SellStockApp(Screen):
             transaction_fee = float(transaction_fee)
         sale_price += transaction_fee
         sale_result = portfolio.sell_stock(ticker, no_of_shares, sale_price)
-        # results = self.query_one("#sell_results")
-        # results.message = sale_result[1]
         app.push_screen(MessageBox(sale_result[1]))
+        container = self.query_one("#sell-results-container")
+        pt = container.query_one(PortfolioTable)
+        pt.remove()
+        pt = PortfolioTable()
+        container.mount(pt)
+        pt.scroll_visible()
 
 
 ####################################################################################################################################
@@ -342,6 +354,9 @@ class WithdrawApp(Screen):
             message = f"Withdrawal Failed. Balance: $ {withdrawal_result[1]:.2f}"
         app.push_screen(MessageBox(message))
 
+####################################################################################################################################
+
+
 class StockTrackerLayoutApp(App):
     # CSS_PATH = "style.tcss"
     OWNER = "LT1"
@@ -363,7 +378,7 @@ class StockTrackerLayoutApp(App):
         "withdraw": WithdrawApp
     }
 
-    active_ticker = "AAPL"
+    # active_ticker = "AAPL"
 
     def on_ready(self) -> None:
         # self.push_screen(StockTrackerApp())
@@ -379,11 +394,12 @@ class StockTrackerLayoutApp(App):
 
     def action_refresh_data(self) -> None: 
         """refresh data"""
-        portfolio.refresh_data()
+        # portfolio.refresh_data()
         tables = app.query(PortfolioTable)
         for i in tables:
             i.update_table()
-        time_display = self.app.query_one("#display_UpdateTime")
+            # i.refresh()
+        time_display = app.query_one("#display_UpdateTime")
         time_display.last_update_time = datetime.now()
         # app.exit()
 
