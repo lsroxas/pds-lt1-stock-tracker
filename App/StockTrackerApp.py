@@ -64,6 +64,10 @@ class PositionActions(Static):
 
     @on(Button.Pressed, "#button_Refresh")
     def update_refresh_time(self):
+        portfolio.refresh_data()
+        tables = app.query(PortfolioTable)
+        for i in tables:
+            i.update_table()
         time_display = self.app.query_one("#display_UpdateTime")
         time_display.last_update_time = datetime.now()
     
@@ -103,6 +107,11 @@ class PortfolioTable(DataFrameTable):
     def format_results(self) -> None: 
         table = self.query_one(DataFrameTable)
         table.header_height = 1
+
+    def update_table(self):
+        df_portfolio = portfolio.get_portfolio()
+        self.update_df(df_portfolio)
+
 
 
 class PotfolioSummary(Static):
@@ -152,6 +161,7 @@ class StockTrackerApp(Screen):
             yield Column_Narrow()
 
     def on_mount(self):
+
         self.title = "Stock Tracker"
         self.sub_title = f"{app.OWNER}'s Portfolio"
 
@@ -339,11 +349,23 @@ class StockTrackerLayoutApp(App):
         """Quit application"""
         app.exit()
 
+    def action_refresh_data(self) -> None: 
+        """refresh data"""
+        portfolio.refresh_data()
+        tables = app.query(PortfolioTable)
+        for i in tables:
+            i.update_table()
+        time_display = self.app.query_one("#display_UpdateTime")
+        time_display.last_update_time = datetime.now()
+        # app.exit()
+
 if __name__ == "__main__":
-    ### TODO: Load general configs via config file:
-    ### 1. User Name
-    ### 2. Default Transaction Fee
-    
+    ### TODO: 
+    ### 1. Refresh Dataframe after buy and sell 
+    ### 2. Load general configs via config file:
+    ###     User Name
+    ###     Default Transaction Fee
+    ### 
     portfolio = st.Portfolio()
     app = StockTrackerLayoutApp()
     app.run()

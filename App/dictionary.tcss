@@ -30,7 +30,3 @@ Horizontal {
 Static {
     padding: 1;
 }
-
-test {
-    align: center middle;
-}
