@@ -396,6 +396,10 @@ class StockTrackerLayoutApp(App):
 
 
 if __name__ == "__main__":
+    ### TODO: Load general configs via config file:
+    ### 1. User Name
+    ### 2. Default Transaction Fee
+
     portfolio = st.Portfolio()
     app = StockTrackerLayoutApp()
     app.run()
