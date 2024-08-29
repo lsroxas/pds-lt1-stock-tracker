@@ -8,14 +8,13 @@ Input {
 
 #results {
     width: 40%;
-    height: auto;    
+    height: 20;    
 }
 
 #results-container {
     background: $background 50%;
     margin: 0 0 1 0;
-    height: 50%;
-    overflow: hidden auto;
+    height: 10;
     border: tall $background;
 }
 
@@ -23,14 +22,6 @@ Input {
     border: tall $accent;
 }
 
-Horizontal {
-    align: left middle;
-}
-
 Static {
     padding: 1;
-}
-
-test {
-    align: center middle;
 }

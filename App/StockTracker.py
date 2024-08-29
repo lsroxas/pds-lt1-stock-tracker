@@ -41,8 +41,11 @@ class Stock:
         """tickers is a list of ticker names"""
         retFrame = pd.DataFrame(columns=['ticker', 'current_price'])
         for ticker in tickers:
-            retFrame.loc[len(retFrame)] = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
-        return retFrame
+            # retFrame.loc[index] = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
+            # retFrame = [ticker, yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
+            newrow = [ticker,  yf.Ticker(ticker).history(period='1d', interval='1m').iloc[-1]['Close']]
+            retFrame.loc[len(retFrame)] = newrow
+        return retFrame  
     
 
 class Portfolio:
@@ -72,20 +75,27 @@ class Portfolio:
 
     def add_transaction(self, transactiondata):
         ## transactiondata = [date, transaction, ticker, initialbalance, endingbalance]
-        self.balance = transactiondata[4] ## ending balance
-        self.transaction_history.loc[len(self.transaction_history)] = transactiondata
-        self.save_transactions(self.transaction_history_filename)
+        try:
+            self.balance = transactiondata[4] ## ending balance
+            self.transaction_history.loc[len(self.transaction_history)] = transactiondata
+            self.save_transactions(self.transaction_history_filename)
+            return True
+        except:
+            return False
 
-    ## available transactions ##
     def deposit(self, amount):
-        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Deposit', '', self.balance, self.balance + amount])
-        self.balance += amount
-        return self.balance
+        if amount > 0: 
+            return_value = self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Deposit', '', self.balance, self.balance + amount])
+        else:
+            return_value = False 
+        return return_value, self.balance 
         
     def withdraw(self, amount):
-        self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Withdraw', '', self.balance, self.balance - amount])
-        self.balance -= amount
-        return self.balance
+        if self.balance > amount and amount >= 0:
+            return_value = self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Withdraw', '', self.balance, self.balance - amount])
+        else:
+            return_value = False
+        return return_value, self.balance 
 
     ## portfolio actions ##
     def buy_stock(self, ticker, shares, price, tf=None):
@@ -127,9 +137,9 @@ class Portfolio:
             #update pct_portfolio for all stocks in df
             self.stocks['pct_portfolio'] = self.stocks['market_value'] / self.stocks['market_value'].sum()
             self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Buy', ticker, self.balance, self.balance - total_cost])
-            self.balance -= total_cost
+            # self.balance -= total_cost
             self.save_portfolio(self.portfolio_filename)
-            return (True, f"Bought {shares} shares of {ticker} at {price} each.")
+            return (True, f"Bought {shares} shares of {ticker} for {total_cost}.")
         else:
             return (False, "Insufficient funds to complete this purchase.")
             
@@ -149,9 +159,9 @@ class Portfolio:
                     self.stocks.loc[self.stocks['ticker'] == ticker, 'pct_change'] = (self.stocks.loc[self.stocks['ticker'] == ticker, 'gainloss'] / (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'])).astype('float64')
                 self.stocks['pct_portfolio'] = self.stocks['market_value'] / self.stocks['market_value'].sum()
                 self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Sell', ticker, self.balance, self.balance + total_revenue])
-                self.balance += total_revenue
+                # self.balance += total_revenue
                 self.save_portfolio(self.portfolio_filename)
-                return (True, f"Sold {shares} shares of {ticker} at {price} each.")
+                return (True, f"Sold {shares} shares of {ticker} for {total_revenue}.")
             else:
                 return (False, "Not enough shares to sell.")
         else:
@@ -168,7 +178,10 @@ class Portfolio:
         portfolio_market_value = self.stocks['market_value'].sum()
         portfolio_acq_value = (self.stocks['average_price']*self.stocks['shares']).sum()
         portfolio_gainloss = portfolio_market_value - portfolio_acq_value
-        portfolio_pct_change = portfolio_gainloss/portfolio_acq_value
+        if portfolio_acq_value == 0:
+            portfolio_pct_change = 0
+        else: 
+            portfolio_pct_change = portfolio_gainloss/portfolio_acq_value
         return portfolio_market_value, portfolio_gainloss, portfolio_pct_change
 
     def get_portfolio(self):
@@ -177,11 +190,11 @@ class Portfolio:
     def refresh_data(self):
         ticker_list = self.stocks['ticker'].to_list()
         df_current_prices = Stock.get_current_prices(ticker_list)
-        self.stocks['market_price'] = self.stocks['ticker'].map(df_current_prices.set_index('ticker')['current_price'])
+        self.stocks['marketprice'] = self.stocks['ticker'].map(df_current_prices.set_index('ticker')['current_price'])
         ## update other columns dependent on market price
-        self.stocks.loc[self.stocks['ticker'] == ticker, 'market_value'] = self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'] * self.stocks.loc[self.stocks['ticker'] == ticker, 'market_price']
-        self.stocks.loc[self.stocks['ticker'] == ticker, 'gainloss'] = self.stocks.loc[self.stocks['ticker'] == ticker, 'market_value'] - (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'])
-        self.stocks.loc[self.stocks['ticker'] == ticker, 'pct_change'] = self.stocks.loc[self.stocks['ticker'] == ticker, 'gainloss'] / (self.stocks.loc[self.stocks['ticker'] == ticker, 'average_price'] * self.stocks.loc[self.stocks['ticker'] == ticker, 'shares'])
+        self.stocks['market_value'] = self.stocks['shares'] * self.stocks['marketprice']
+        self.stocks['gainloss'] = self.stocks['market_value'] - (self.stocks['average_price'] * self.stocks['shares'])
+        self.stocks['pct_change'] = self.stocks['gainloss'] / (self.stocks['average_price'] * self.stocks['shares'])
         ## update portfolio values
         self.portfolio_market_value, self.portfolio_gainloss, self.portfolio_pct_change = self.get_portfolio_value()
     

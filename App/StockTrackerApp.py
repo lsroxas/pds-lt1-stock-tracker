@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from textual.events import Enter, Focus, Mount
+
 try: 
     import httpx
 except ImportError: 
@@ -28,29 +30,55 @@ except ImportError:
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
-from textual.containers import HorizontalScroll, VerticalScroll, ScrollableContainer, Horizontal, Vertical
+from textual.containers import Container, HorizontalScroll, VerticalScroll, ScrollableContainer, Horizontal, Vertical
 from textual.widgets import Header, Footer, Button, Static, DataTable, Label, Input, Markdown
-from textual.screen import Screen
+from textual.screen import Screen, ModalScreen
 from textual_pandas.widgets import DataFrameTable
+
 from datetime import time, datetime
 
-
 import StockTracker as st
+
+
+
+class MessageBox(ModalScreen):
+    """Generic Message Box"""
+    CSS_PATH = "modalscreen.tcss"
+
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+    def compose(self):
+        with Container():
+            yield Label(self.message)
+            with Horizontal():
+                yield Button.success("Ok", id="yes")
+
+    @on(Button.Pressed)
+    def exit_screen(self, event):
+        button_id = event.button.id
+        self.dismiss(button_id == "yes")
+
 
 class LastUpdateInfo(Static):
     """Shows last update time of stock information"""
     last_update_time = reactive(0)
     def watch_last_update_time(self):
         # time = self.last_update_time 
-        self.update(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %z')}")
+        self.update(f"Press Refresh Button or 'R' to refresh table data.\nLast Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %z')}.")
 
-class ResultsInfo(Static):
-    """Shows last update time of stock information"""
-    message = reactive("")
-    def watch_message(self):
-        # time = self.last_update_time 
-        self.update(f"{self.message}")
+class PotfolioSummary(Static):
+    """Widget to display Portfolio Summary."""
 
+    def compose(self):
+        # yield Markdown(self.PORTFOLIO_VALUE_MESSAGE + "\\n" + self.PORTFOLIO_DAY_CHANGE_MESSAGE + "\n" + self.PORTFOLIO_GAINLOSS_MESSAGE, classes="Summary")
+        value_message = f"""
+        Cash Available: ${portfolio.balance}\n
+        Total Portoflio Trade Value: {portfolio.portfolio_market_value:.2f}\n
+        Day Change: {portfolio.portfolio_gainloss:.2f}\n
+        Gain/Loss : {portfolio.portfolio_pct_change*100:.2f}%"""
+        yield Label(value_message, classes="summary")
 
 class PositionActions(Static):
     """Buttons for Stock Watchlist"""
@@ -59,14 +87,13 @@ class PositionActions(Static):
         yield Button("Sell", variant="error", id="button_Sell")
         yield Button("Refresh", variant="default", id="button_Refresh")
         yield Button("Deposit", id="button_Deposit")
-        yield Button("Withraw", id="button_Withdraw")
+        yield Button("Withdraw", id="button_Withdraw")
         yield Button("Quit", variant="default", id="button_Quit")
 
     @on(Button.Pressed, "#button_Refresh")
     def update_refresh_time(self):
-        time_display = self.app.query_one("#display_UpdateTime")
-        time_display.last_update_time = datetime.now()
-    
+        app.action_refresh_data()
+
     @on(Button.Pressed, "#button_Quit")
     def quit_application(self):
         app.exit()
@@ -104,31 +131,10 @@ class PortfolioTable(DataFrameTable):
         table = self.query_one(DataFrameTable)
         table.header_height = 1
 
-
-class PotfolioSummary(Static):
-    """Widget to display Portfolio Summary."""
-    
-    def compose(self):
-        # yield Markdown(self.PORTFOLIO_VALUE_MESSAGE + "\\n" + self.PORTFOLIO_DAY_CHANGE_MESSAGE + "\n" + self.PORTFOLIO_GAINLOSS_MESSAGE, classes="Summary")
-        value_message = f"""
-        Cash Available: ${portfolio.balance}\n
-        Total Portoflio Trade Value: {portfolio.portfolio_market_value:.2f}\n
-        Day Change: {portfolio.portfolio_gainloss:.2f}\n
-        Gain/Loss : {portfolio.portfolio_pct_change*100:.2f}%"""
-        yield Label(value_message, classes="summary")
-
-class Column_Wide(VerticalScroll):
-    DEFAULT_CSS = """
-    Column_Wide {
-        height: 1fr;
-        width: 3fr;
-        margin: 1 1;
-    }
-    """
-    def compose(self) -> ComposeResult:
-        yield PortfolioTable()
-        yield LastUpdateInfo(id="display_UpdateTime")
-        yield PotfolioSummary(id="display_Summary")
+    # def update_table(self):
+    #     print("----------- Updating Table -----------")
+    #     df_portfolio = portfolio.get_portfolio()
+    #     self.update_df(df_portfolio)
         
 class Column_Narrow(VerticalScroll):
     DEFAULT_CSS = """
@@ -143,17 +149,44 @@ class Column_Narrow(VerticalScroll):
 
 class StockTrackerApp(Screen):
     """Screen for the actual stock tracker"""
+    DEFAULT_CSS = """
+    Vertical {
+        height: auto;
+    }
+    
+    #container_dataframe_table {
+        height: 15;
+    }
+    """
     def compose(self) -> ComposeResult:
         """Widgets for the app"""
+        self.id = "stock_tracker_screen"
         yield Header()
         yield Footer()
-        with HorizontalScroll():
-            yield Column_Wide()
-            yield Column_Narrow()
+        with Vertical():
+            with Horizontal():
+                with Vertical():
+                    with VerticalScroll(id="container_dataframe_table"):
+                        yield PortfolioTable(id="dataframetable_Portfolio")
+                    with Vertical(id="container_summary"):
+                        yield LastUpdateInfo(id="display_UpdateTime")
+                        yield PotfolioSummary(id="display_Summary")
+                with Vertical():
+                    # yield PositionActions()
+                    yield Column_Narrow()
 
     def on_mount(self):
         self.title = "Stock Tracker"
         self.sub_title = f"{app.OWNER}'s Portfolio"
+        container = self.query_one("#container_dataframe_table")
+        pt = container.query_one(PortfolioTable)
+        pt.remove()
+        pt = PortfolioTable()
+        container.mount(pt)
+        pt.scroll_visible()
+
+    def on_switch(self):
+        app.action_refresh_data()
 
 ####################################################################################################################################
 
@@ -165,19 +198,18 @@ class BuyStockApp(Screen):
         """Creatte screen for buying stocks"""
         yield Header()
         yield Footer()
-        yield Input(placeholder="Search for a stock", id="input_Ticker")
-        with VerticalScroll(id="results-container"):
-            with HorizontalScroll():
-                ### TODO: Add logic to update result based on search
-                yield Markdown(id="results")
-            with VerticalScroll():
+        with VerticalScroll():
+            yield Input(placeholder="Search for a stock", id="input_Ticker")
+            # with HorizontalScroll():
+            #     ### TODO: Add logic to update result based on search
+            #     # yield Markdown(id="results")
+            with Vertical():
                 yield Input(placeholder="Sale Price", id="input_salePrice", type="number")
                 yield Input(placeholder="# Shares", id="input_NoOfShares", type="integer")
                 yield Input(placeholder="Transaction Fee (defaults to 0)", id="input_TransactionFee", type="number")
                 with Horizontal():
                     yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                     yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                    yield ResultsInfo("_", id="buy_results")
 
     @on(Button.Pressed, "#buttton_Execute_Sale")
     def execute_sale(self):
@@ -190,8 +222,7 @@ class BuyStockApp(Screen):
         else:
             transaction_fee = float(transaction_fee)
         sale_result = portfolio.buy_stock(ticker, no_of_shares, sale_price, transaction_fee)
-        results = self.query_one("#buy_results")
-        results.message = sale_result[1]
+        app.push_screen(MessageBox(sale_result[1]))
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -206,18 +237,14 @@ class SellStockApp(Screen):
 
     current_ticker = reactive("")
 
-    def watch_current_ticker(self):
-        # time = self.last_update_time 
-        # self.update(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %z')}")
-        ...
-
     def compose(self) -> ComposeResult:
         """Create screen for buying stocks"""
         yield Header()
         yield Footer()
-        with VerticalScroll(id="results-container"):
+        with VerticalScroll():
             ### TODO: Add logic to update based on currently selected cell in sell 
-            yield PortfolioTable()
+            with Vertical(id="sell-results-container"):
+                yield PortfolioTable()
             yield Input(placeholder="Stock to Sell", id="input_Ticker", type="text")
             yield Input(placeholder="Selling Price", id="input_salePrice", type="number")
             yield Input(placeholder="# Shares to Sell", id="input_NoOfShares", type="integer")
@@ -225,7 +252,7 @@ class SellStockApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute_Sale")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                yield ResultsInfo("_", id="sell_results")
+    
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -243,8 +270,14 @@ class SellStockApp(Screen):
             transaction_fee = float(transaction_fee)
         sale_price += transaction_fee
         sale_result = portfolio.sell_stock(ticker, no_of_shares, sale_price)
-        results = self.query_one("#sell_results")
-        results.message = sale_result[1]
+        app.push_screen(MessageBox(sale_result[1]))
+        container = self.query_one("#sell-results-container")
+        pt = container.query_one(PortfolioTable)
+        pt.remove()
+        pt = PortfolioTable()
+        container.mount(pt)
+        pt.scroll_visible()
+
 
 ####################################################################################################################################
 
@@ -261,7 +294,6 @@ class DepositApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                yield ResultsInfo("_", id="deposit_results")
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -271,8 +303,11 @@ class DepositApp(Screen):
     def execute_Deposit(self):
         amount = float(self.query_one("#input_DepositAmount").value)
         deposit_result = portfolio.deposit(amount)
-        results = self.query_one("#deposit_results")
-        results.message = f"Deposit Completed. New balance: $ {deposit_result:.2f}"
+        if deposit_result[0]:
+            message = f"Deposit Completed. New balance: $ {deposit_result[1]:.2f}"
+        else:
+            message = f"Deposit Failed. Balance: $ {deposit_result[1]:.2f}"
+        app.push_screen(MessageBox(message))
 
 ####################################################################################################################################
 
@@ -289,19 +324,23 @@ class WithdrawApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                yield ResultsInfo("_", id="withdraw_results")
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
+        # self.dismiss()
         app.switch_mode("portfolio")
     
     @on(Button.Pressed, "#buttton_Execute")
     def execute_Withdrawal(self):
         amount = float(self.query_one("#input_WithdrawalAmount").value)
-        withrdawal_result = portfolio.withdraw(amount)
-        results = self.query_one("#withdraw_results")
-        results.message = f"Withdrawal Completed. New balance: $ {withrdawal_result:.2f}"
+        withdrawal_result = portfolio.withdraw(amount)
+        if withdrawal_result[0]:
+            message = f"Withdrawal Completed. New balance: $ {withdrawal_result[1]:.2f}"
+        else:
+            message = f"Withdrawal Failed. Balance: $ {withdrawal_result[1]:.2f}"
+        app.push_screen(MessageBox(message))
 
+####################################################################################################################################
 
 
 class StockTrackerLayoutApp(App):
@@ -313,7 +352,7 @@ class StockTrackerLayoutApp(App):
         ("s", "switch_mode('sellstock')", "Sell Stock"), 
         ("d", "switch_mode('deposit')", "Deposit"),
         ("w", "switch_mode('withdraw')", "Withdraw"),
-        ("r", "refresh_data"), 
+        ("r", "refresh_data", "Refresh Data"), 
         ("l", "toggle_dark", "Toggle Dark Mode"), 
         ("q", "quit_application", "Quit")
     ]
@@ -325,10 +364,7 @@ class StockTrackerLayoutApp(App):
         "withdraw": WithdrawApp
     }
 
-    active_ticker = "AAPL"
-
     def on_ready(self) -> None:
-        # self.push_screen(StockTrackerApp())
         self.switch_mode("portfolio")
 
     def action_toggle_dark(self) -> None:
@@ -339,11 +375,31 @@ class StockTrackerLayoutApp(App):
         """Quit application"""
         app.exit()
 
+    def action_refresh_data(self) -> None: 
+        """refresh data"""
+        portfolio.refresh_data()
+        container = app.query_one("#container_dataframe_table")
+        pt = container.query_one(PortfolioTable)
+        pt.remove()
+        pt = PortfolioTable()
+        container.mount(pt)
+        pt.scroll_visible()
+
+        time_display = app.query_one("#display_UpdateTime")
+        time_display.last_update_time = datetime.now()
+
+        container = app.query_one("#container_summary")
+        summary_display = container.query_one(PotfolioSummary)
+        summary_display.remove()
+        summary_display = PotfolioSummary()
+        container.mount(summary_display)
+
+
 if __name__ == "__main__":
     ### TODO: Load general configs via config file:
     ### 1. User Name
     ### 2. Default Transaction Fee
-    
+
     portfolio = st.Portfolio()
     app = StockTrackerLayoutApp()
     app.run()
