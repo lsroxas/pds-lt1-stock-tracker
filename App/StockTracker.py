@@ -20,14 +20,24 @@ class Stock:
         #     return info.get('shortName', None)
         return yf.Ticker(self.ticker).info.get('shortName', None)
         
+    def get_info(self, symbol):
+        return yf.Ticker(symbol).info
 
     def get_name(self, ticker):
-        return yf.Ticker(ticker).info['shortName']
+        try:
+            shortName = yf.Ticker(ticker).info['shortName']
+        except Exception:
+            shortName = ""
+        finally:
+            return shortName
 
     def get_history(self, period='1mo', interval='1d'):
         self.data = yf.Ticker(self.ticker).history(period=period, interval=interval)
         return self.data
-
+    
+    def get_ticker_current_price(self, ticker):
+        return yf.Ticker(ticker).history(period='30m', interval='5m').iloc[-1]['Close']
+    
     def get_current_price(self):
         if not self.data:
             self.fetch_data(period='1d', interval='1m')
