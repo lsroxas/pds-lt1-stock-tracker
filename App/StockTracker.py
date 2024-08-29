@@ -76,15 +76,13 @@ class Portfolio:
         self.transaction_history.loc[len(self.transaction_history)] = transactiondata
         self.save_transactions(self.transaction_history_filename)
 
-    ## available transactions ##
     def deposit(self, amount):
         self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Deposit', '', self.balance, self.balance + amount])
         return self.balance
         
     def withdraw(self, amount):
         self.add_transaction([datetime.today().strftime('%m/%d/%Y'), 'Withdraw', '', self.balance, self.balance - amount])
-        self.balance -= amount
-        return
+        return self.balance
 
     ## portfolio actions ##
     def buy_stock(self, ticker, shares, price, tf=None):

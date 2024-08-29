@@ -28,14 +28,36 @@ except ImportError:
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
-from textual.containers import HorizontalScroll, VerticalScroll, ScrollableContainer, Horizontal, Vertical
+from textual.containers import Container, HorizontalScroll, VerticalScroll, ScrollableContainer, Horizontal, Vertical
 from textual.widgets import Header, Footer, Button, Static, DataTable, Label, Input, Markdown
-from textual.screen import Screen
+from textual.screen import Screen, ModalScreen
 from textual_pandas.widgets import DataFrameTable
+
 from datetime import time, datetime
 
-
 import StockTracker as st
+
+
+
+class MessageBox(ModalScreen):
+    """Generic Message Box"""
+    CSS_PATH = "modalscreen.tcss"
+
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+    def compose(self):
+        with Container():
+            yield Label(self.message)
+            with Horizontal():
+                yield Button.success("Ok", id="yes")
+
+    @on(Button.Pressed)
+    def exit_screen(self, event):
+        button_id = event.button.id
+        self.dismiss(button_id == "yes")
+
 
 class LastUpdateInfo(Static):
     """Shows last update time of stock information"""
@@ -111,8 +133,6 @@ class PortfolioTable(DataFrameTable):
     def update_table(self):
         df_portfolio = portfolio.get_portfolio()
         self.update_df(df_portfolio)
-
-
 
 class PotfolioSummary(Static):
     """Widget to display Portfolio Summary."""
@@ -271,7 +291,6 @@ class DepositApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                yield ResultsInfo("_", id="deposit_results")
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
@@ -281,8 +300,7 @@ class DepositApp(Screen):
     def execute_Deposit(self):
         amount = float(self.query_one("#input_DepositAmount").value)
         deposit_result = portfolio.deposit(amount)
-        results = self.query_one("#deposit_results")
-        results.message = f"Deposit Completed. New balance: $ {deposit_result:.2f}"
+        app.push_screen(MessageBox(f"Deposit Completed. New balance: $ {deposit_result:.2f}"))
 
 ####################################################################################################################################
 
@@ -299,20 +317,18 @@ class WithdrawApp(Screen):
             with Horizontal():
                 yield Button("Execute", variant="success", id="buttton_Execute")
                 yield Button("Back to Portfolio", variant="error", id="button_Cancel")
-                yield ResultsInfo("_", id="withdraw_results")
+                # yield ResultsInfo("_", id="withdraw_results")
 
     @on(Button.Pressed, "#button_Cancel")
     def cancel_screen(self):
+        # self.dismiss()
         app.switch_mode("portfolio")
     
     @on(Button.Pressed, "#buttton_Execute")
     def execute_Withdrawal(self):
         amount = float(self.query_one("#input_WithdrawalAmount").value)
         withrdawal_result = portfolio.withdraw(amount)
-        results = self.query_one("#withdraw_results")
-        results.message = f"Withdrawal Completed. New balance: $ {withrdawal_result:.2f}"
-
-
+        app.push_screen(MessageBox(f"Withdrawal Completed. New balance: $ {withrdawal_result:.2f}"))
 
 class StockTrackerLayoutApp(App):
     # CSS_PATH = "style.tcss"
