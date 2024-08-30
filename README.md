@@ -19,7 +19,9 @@ App will provide a tabular interface with summary of the portfolio value with ga
 
 ### Installion and Usage
 Clone the repository
+
 Navigate to the App folder
+
 Execute the StockTrackerApp.py file using python:
 `python StockTrackerApp.py`
 
