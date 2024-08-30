@@ -22,3 +22,6 @@ StockTracker_copy.py
 transactions.csv
 porfolio.csv
 App/dictionary2.tcss
+StockTracker.py
+StockTrackerApp.py
+App/requirements.txt.bak
