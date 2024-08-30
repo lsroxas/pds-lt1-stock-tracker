@@ -18,6 +18,8 @@ Deduct transaction fees from the user's balance for each trade.
 App will provide a tabular interface with summary of the portfolio value with gains/loss ratio.
 
 ### Installion and Usage
+Clone the repository
+Navigate to the App folder
 Execute the StockTrackerApp.py file using python:
 `python StockTrackerApp.py`
 
