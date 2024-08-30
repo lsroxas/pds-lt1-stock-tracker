@@ -17,7 +17,7 @@ Deduct transaction fees from the user's balance for each trade.
 ### User Interface:
 App will provide a tabular interface with summary of the portfolio value with gains/loss ratio.
 
-### Installion and Usage
+### Installation and Usage
 Clone the repository
 
 Navigate to the App folder
